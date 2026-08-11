@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div id="titlebar">
+    <div id="brand">Settings<span>changes apply instantly</span></div>
+    <button id="close-btn" title="Hide (F12 reopens)" aria-label="Hide window">✕</button>
+  </div>
+
+  <main>
+    <section>
+      <h2>Overlay</h2>
+      <label class="field">
+        <span>Appearance</span>
+        <select id="appearance"></select>
+      </label>
+      <label class="field">
+        <span>Panel darkness</span>
+        <span class="slider"><input id="panelAlpha" type="range" min="0.3" max="1" step="0.05"><output id="panelAlpha-out"></output></span>
+      </label>
+      <label class="field">
+        <span>Overlay zoom</span>
+        <span class="slider"><input id="scale" type="range" min="0.75" max="2" step="0.05"><output id="scale-out"></output></span>
+      </label>
+      <label class="field check">
+        <input id="showKeys" type="checkbox"><span>Show the hotkey hint row</span>
+      </label>
+      <label class="field check">
+        <input id="onlyOverGame" type="checkbox"><span>Only show while the game is focused</span>
+      </label>
+      <label class="field">
+        <span>Game window title</span>
+        <input id="gameTitle" type="text" spellcheck="false">
+      </label>
+    </section>
+
+    <section>
+      <h2>Controller</h2>
+      <label class="field">
+        <span>Facing side</span>
+        <select id="side">
+          <option value="p1">P1 — facing right</option>
+          <option value="p2">P2 — facing left</option>
+        </select>
+      </label>
+      <div id="binds"></div>
+      <p class="hint">Map each Xbox button to Tekken limbs (1=LP 2=RP 3=LK 4=RK) — match your in-game controller settings.</p>
+    </section>
+
+    <section>
+      <h2>Notation drill</h2>
+      <label class="field">
+        <span>Difficulty</span>
+        <select id="notationDiff">
+          <option value="easy">easy — 1 input</option>
+          <option value="medium">medium — 2 inputs</option>
+          <option value="hard">hard — 3 inputs</option>
+        </select>
+      </label>
+      <p class="hint">The mode hotkey cycles to the drill; in-mode, prev/next combo keys change difficulty and reset skips the prompt.</p>
+    </section>
+
+    <section>
+      <h2>Hotkeys</h2>
+      <div id="hotkeys"></div>
+      <p class="hint">Electron accelerator names — F1, Ctrl+Shift+M, … Invalid or taken keys are skipped.</p>
+    </section>
+  </main>
+
+  <script type="module" src="../../dist/renderer/settings.js"></script>
+</body>
+</html>

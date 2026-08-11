@@ -1,0 +1,250 @@
+/* Overlay skin. Sits over live gameplay, so everything optimizes for
+   peripheral-vision legibility on an unpredictable background: dark glass,
+   quiet neutrals, color only where it carries meaning.
+   The chamfered cut corners are the shared geometry of the app — Tekken 8's
+   own menus are built from the same angular panels.
+   Palette/type/token styles come from tokens.css. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+html, body { background: transparent; overflow: hidden; }
+
+body {
+  font-family: var(--font-ui);
+  color: var(--text);
+  font-size: 14px;
+}
+
+#root {
+  margin: 4px;
+  /* --panel-alpha comes from config.json (overlay.panelAlpha) via init */
+  background: rgba(10, 14, 22, var(--panel-alpha, 0.85));
+  clip-path: polygon(
+    16px 0, 100% 0,
+    100% calc(100% - 16px), calc(100% - 16px) 100%,
+    0 100%, 0 16px
+  );
+  box-shadow: inset 0 0 0 1px var(--edge), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: 6px 16px 12px;
+  min-height: 120px;
+}
+/* locked keeps the chosen appearance — it only drops the dragbar and edge */
+#root.locked {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+#dragbar {
+  -webkit-app-region: drag;
+  cursor: move;
+  text-align: center;
+  padding: 3px 0 6px;
+  font: 600 9px/1.4 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+#root.locked #dragbar { display: none; }
+
+/* ---- status row ---- */
+#statusbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding-bottom: 8px;
+}
+#mode-pill, #side-pill, #metro-pill, #opacity-pill {
+  font: 600 10px/1.8 var(--font-mono);
+  letter-spacing: 0.08em;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+#mode-pill { background: rgba(255, 255, 255, 0.14); color: var(--text-hi); cursor: pointer; }
+#mode-pill:hover { background: rgba(255, 255, 255, 0.24); }
+#metro-pill { background: rgba(240, 194, 100, 0.16); color: var(--amber); }
+#metro-pill.off { background: rgba(255, 255, 255, 0.05); color: var(--text-faint); }
+#conn { flex: none; }
+#conn.ok { color: var(--good); opacity: 0.75; }
+#conn.off { color: var(--bad); }
+#keys {
+  margin-left: auto;
+  font: 500 10px/1.4 var(--font-mono);
+  color: var(--text-faint);
+}
+#keys.hidden { display: none; }
+#pad-view { display: inline-flex; gap: 4px; align-items: center; }
+#pad-dir { font-weight: 700; color: var(--text-hi); width: 22px; text-align: center; }
+
+/* ---- freeplay ticker ---- */
+#ticker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 90px;
+  justify-content: flex-end;
+}
+.ticker-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 1;
+  transition: opacity 1.2s ease;
+}
+.ticker-entry.fading { opacity: 0; }
+.move-name {
+  font: 600 17px/1.2 var(--font-display);
+  font-stretch: 87.5%;
+  letter-spacing: 0.01em;
+  color: var(--text-hi);
+  white-space: nowrap;
+}
+.move-cmd { font: 500 12px/1.4 var(--font-mono); color: var(--amber); white-space: nowrap; }
+.move-alt { color: var(--text-faint); font-size: 11px; }
+.approx { color: var(--text-faint); font-size: 12px; }
+
+/* landing an electric is the one moment the overlay is allowed to celebrate */
+.electric {
+  font: 700 10px/1.7 var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--electric);
+  border: 1px solid rgba(111, 211, 255, 0.55);
+  border-radius: 2px;
+  padding: 0 6px;
+  text-shadow: 0 0 8px var(--electric-glow);
+  animation: electric-pop 0.6s ease-out;
+}
+@keyframes electric-pop {
+  from { box-shadow: 0 0 16px var(--electric-glow); }
+  to   { box-shadow: 0 0 0 rgba(111, 211, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .electric { animation: none; }
+}
+.not-electric { font: 500 11px/1.4 var(--font-mono); color: var(--late); }
+
+/* ---- trainer ---- */
+.hidden { display: none !important; }
+#combo-head { display: flex; gap: 10px; align-items: baseline; padding-bottom: 6px; }
+#combo-name {
+  font: 700 17px/1.2 var(--font-display);
+  font-stretch: 87.5%;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-hi);
+}
+#combo-idx { font: 500 11px/1.4 var(--font-mono); color: var(--text-faint); }
+#combo-strip { display: flex; gap: 10px; flex-wrap: wrap; padding: 4px 0 6px; }
+.step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 9px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  clip-path: polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.14);
+  min-width: 58px;
+}
+/* step number — the post-attempt summary says “2nd input late”, so the
+   chips carry the same numbering */
+.step .idx {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font: 600 8px/1 var(--font-mono);
+  color: var(--text-faint);
+}
+.step .delta {
+  font: 600 10px/1.3 var(--font-mono);
+  color: var(--text-faint);
+  height: 13px;
+}
+.step.good   { border-bottom-color: var(--good);  background: rgba(94, 203, 126, 0.13); }
+.step.early  { border-bottom-color: var(--early); background: rgba(232, 193, 90, 0.11); }
+.step.late   { border-bottom-color: var(--late);  background: rgba(236, 152, 96, 0.11); }
+.step.wrong, .step.missed { border-bottom-color: var(--bad); background: rgba(238, 106, 96, 0.13); }
+.step.good .delta  { color: var(--good); }
+.step.early .delta { color: var(--early); }
+.step.late .delta  { color: var(--late); }
+.step.wrong .delta, .step.missed .delta { color: var(--bad); }
+#combo-note { font-size: 11px; color: var(--text-dim); padding-bottom: 4px; }
+#summary { font-size: 13px; color: var(--amber); min-height: 18px; font-weight: 600; }
+#summary.clean { color: var(--good); }
+
+/* ---- notation drill ---- */
+/* buttons are clickable while the overlay is unlocked; hotkeys mirror them in-game */
+#nota-head { display: flex; gap: 10px; align-items: center; }
+#nota-diffs { display: inline-flex; gap: 2px; }
+.nota-diff-btn, #nota-skip {
+  font: 600 10px/1.8 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-faint);
+}
+.nota-diff-btn:hover, #nota-skip:hover { background: rgba(255, 255, 255, 0.13); color: var(--text-hi); }
+.nota-diff-btn.active { background: rgba(240, 194, 100, 0.16); color: var(--amber); }
+.nota-diff-btn:focus-visible, #nota-skip:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.4); }
+#nota-skip { margin-left: auto; color: var(--text-dim); }
+#nota-score { font: 500 11px/1.4 var(--font-mono); color: var(--text-dim); }
+#nota-prompt {
+  font: 700 34px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  text-align: center;
+  padding: 8px 0 2px;
+}
+#nota-progress {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 8px;
+  color: var(--text-dim);
+  min-height: 15px;
+}
+#nota-feedback {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  font-size: 14px;
+}
+#nota-feedback .mark { font-weight: 800; }
+#nota-feedback.ok .mark { color: var(--good); }
+#nota-feedback.bad .mark { color: var(--bad); }
+#nota-feedback .nota-got { font-size: 11px; color: var(--text-faint); }
+
+/* ---- Tekken-style input history (labeled Xbox buttons) ---- */
+#input-history {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.38);
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  overflow: hidden;
+  justify-content: flex-end; /* newest on the right */
+  /* oldest entries dissolve at the left edge */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 40px);
+  mask-image: linear-gradient(90deg, transparent, #000 40px);
+}
+.hist-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.hist-entry .tok-dir { font-size: 17px; }
+.hist-entry .btn-ic { width: 20px; height: 20px; font-size: 11px; }
+.hist-entry.old { opacity: 0.45; }

@@ -1,0 +1,58 @@
+{
+  "_doc": "Jin training combos. ideal = target frame offset from the FIRST input (60fps frames). window = tolerance in frames. Timings marked approximate are starting points — tune them to what works in-game.",
+  "combos": [
+    {
+      "id": "ewgf-drill",
+      "name": "Electric Wind God Fist drill",
+      "kind": "move-drill",
+      "moveId": "Jin-CD.df:2",
+      "altMoveId": "Jin-CD.df+2",
+      "note": "→ N ↓ ↘+Y (f,n,d,df+2) — press Y on the SAME frame as ↘. The overlay shows your ↘→Y gap in ms."
+    },
+    {
+      "id": "jab-string",
+      "name": "1,2 — Left Right Combo",
+      "steps": [
+        { "command": "1", "ideal": 0 },
+        { "command": "2", "ideal": 10, "window": 6 }
+      ],
+      "note": "Basic rhythm. 1 jails into 2 with up to 4f delay."
+    },
+    {
+      "id": "214",
+      "name": "2,1,4 string",
+      "steps": [
+        { "command": "2", "ideal": 0 },
+        { "command": "1", "ideal": 11, "window": 6 },
+        { "command": "4", "ideal": 25, "window": 7 }
+      ],
+      "note": "Timing approximate — adjust ideal frames after labbing."
+    },
+    {
+      "id": "ws-string",
+      "name": "ws1,3,2,1,4,2 — full while-standing string",
+      "steps": [
+        { "command": "ws1", "ideal": 0 },
+        { "command": "3", "ideal": 14, "window": 8 },
+        { "command": "2", "ideal": 30, "window": 8 },
+        { "command": "1", "ideal": 46, "window": 8 },
+        { "command": "4", "ideal": 62, "window": 8 },
+        { "command": "2", "ideal": 80, "window": 8 }
+      ],
+      "note": "Crouch (hold ↓), release, then X. Timings approximate."
+    },
+    {
+      "id": "beginner-bnb",
+      "name": "Beginner juggle: df+2 → f+4 → b+2,1 → f,F+2,3",
+      "steps": [
+        { "command": "df+2", "ideal": 0 },
+        { "command": "f+4", "ideal": 28, "window": 6 },
+        { "command": "b+2", "ideal": 58, "window": 6 },
+        { "command": "1", "ideal": 70, "window": 6 },
+        { "command": "f,F+2", "ideal": 100, "window": 7 },
+        { "command": "3", "ideal": 112, "window": 7 }
+      ],
+      "note": "APPROXIMATE juggle timings — lab it and edit data/combos.json to match what connects."
+    }
+  ]
+}

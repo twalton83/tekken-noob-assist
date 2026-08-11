@@ -1,0 +1,51 @@
+{
+  "name": "tekken-trainer",
+  "version": "0.1.0",
+  "description": "Tekken 8 training overlay for Jin — controller-input move recognition and combo timing coach. Reads XInput only; never touches the game.",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
+    "start": "npm run build && electron .",
+    "dev": "node scripts/dev.mjs",
+    "fetch-data": "node scripts/fetch-jin.mjs",
+    "test-engine": "npm run build && node dist/main/engine-test.js",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.tatianacodes.tekken-trainer",
+    "productName": "Tekken Trainer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "src/renderer/**",
+      "data/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "author": "hello@tatianacodes.com",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^33.2.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "koffi": "^2.9.0"
+  }
+}

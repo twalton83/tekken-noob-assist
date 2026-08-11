@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="moves.css">
+</head>
+<body>
+  <div id="titlebar">
+    <div id="brand">Tekken Trainer<span>Jin · command list</span></div>
+    <div id="win-btns">
+      <button id="settings-btn" title="Settings (F12)" aria-label="Open settings">⚙</button>
+      <button id="close-btn" title="Hide (F5 reopens)" aria-label="Hide window">✕</button>
+    </div>
+  </div>
+  <header>
+    <input id="search" type="text" placeholder="Search — name or input (df2, electric, hopkick…)" autofocus>
+    <span id="count"></span>
+  </header>
+  <div id="hint">Click a move to train it · <kbd>F5</kbd> hides this window · <kbd>F2</kbd>/<kbd>F3</kbd> cycles combos on the overlay</div>
+  <div id="list"></div>
+  <script type="module" src="../../dist/renderer/moves.js"></script>
+</body>
+</html>

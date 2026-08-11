@@ -1,0 +1,132 @@
+/* Settings window skin — same language as the move browser: frameless dark
+   panel, chamfered accents, mono for anything that is a value. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-ui);
+  background: var(--ink);
+  color: var(--text);
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+#titlebar {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 6px 14px;
+  user-select: none;
+}
+#brand {
+  font: 700 15px/1.1 var(--font-display);
+  font-stretch: 87.5%;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-hi);
+  white-space: nowrap;
+}
+#brand span {
+  display: block;
+  font: 500 10px/1.4 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text-faint);
+}
+#close-btn {
+  -webkit-app-region: no-drag;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font: 500 13px/1 var(--font-mono);
+  width: 28px;
+  height: 26px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+#close-btn:hover { background: rgba(238, 106, 96, 0.2); color: var(--text-hi); }
+#close-btn:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.4); }
+
+main { flex: 1; overflow-y: auto; padding: 4px 14px 16px; }
+main::-webkit-scrollbar { width: 10px; }
+main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  border: 2px solid var(--ink);
+}
+
+section { padding: 10px 0 4px; }
+section + section { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+h2 {
+  font: 700 12px/1.2 var(--font-display);
+  font-stretch: 87.5%;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding-bottom: 8px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+.field > span:first-child { color: var(--text); }
+.field.check { justify-content: flex-start; gap: 8px; cursor: pointer; }
+
+input[type="text"], select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 2px;
+  color: var(--text-hi);
+  padding: 4px 8px;
+  font: 500 12px/1.4 var(--font-mono);
+  outline: none;
+  min-width: 150px;
+}
+input[type="text"]:focus, select:focus { border-color: rgba(255, 255, 255, 0.34); }
+select option { background: var(--ink); }
+
+.slider { display: inline-flex; align-items: center; gap: 8px; min-width: 150px; }
+input[type="range"] { flex: 1; accent-color: var(--amber); }
+output { font: 500 11px/1 var(--font-mono); color: var(--text-dim); width: 38px; text-align: right; }
+
+input[type="checkbox"] { accent-color: var(--amber); width: 14px; height: 14px; }
+
+/* binds grid: one row per Xbox button, limb toggle per column */
+.bind-row {
+  display: grid;
+  grid-template-columns: 40px repeat(4, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+.bind-row .pad-btn { font: 700 11px/1 var(--font-mono); color: var(--text-hi); }
+.bind-limb {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 500 11px/1 var(--font-mono);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+/* hotkeys: label + accelerator input per action */
+.hotkey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+}
+.hotkey-row span { color: var(--text); }
+.hotkey-row input { min-width: 130px; width: 130px; text-align: center; }
+
+.hint { color: var(--text-faint); font-size: 11px; padding: 6px 0 4px; }
