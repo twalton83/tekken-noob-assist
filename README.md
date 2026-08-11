@@ -155,4 +155,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT
+GPL-3.0 — see [LICENSE](LICENSE).
