@@ -137,6 +137,27 @@ scenario('WGF (late 2 = not electric)', ['Jin-CD.df+2'], feed => {
   feed('n', [], 8);
 });
 
+// "simultaneous" dir+button where the button's XInput packet arrives first —
+// the dir packet a few ms later must still count (this was a coin flip before)
+scenario('df+2 (button packet first)', ['Jin-df+2'], feed => {
+  feed('n', [], 8);
+  feed('n', [2], 8);    // button packet lands...
+  feed('df', [2], 6);   // ...df packet 6ms later: same frame, still df+2
+  feed('df', [], 30);
+  feed('n', [], 8);
+});
+
+// same race during an electric: 2's packet just before df's -> still electric
+scenario('EWGF (button packet first)', ['Jin-CD.df:2'], feed => {
+  feed('f', [], 50);
+  feed('n', [], 40);
+  feed('d', [], 40);
+  feed('d', [2], 8);
+  feed('df', [2], 5);
+  feed('df', [], 30);
+  feed('n', [], 8);
+});
+
 // ws1 after crouch release
 scenario('ws1', ['Jin-ws1'], feed => {
   feed('d', [], 8);     // crouch starts

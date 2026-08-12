@@ -14,6 +14,20 @@ interface PressEvent { t: number; buttons: Limb[]; dir: Dir; dirSince: number }
 interface Candidate { move: CompiledMove; score: number; jfGapMs: number | null }
 
 const CHORD_MERGE_MS = 18;       // presses within ~1 frame count as a chord
+
+// "Simultaneous" dir+button presses arrive as two XInput packets in arbitrary
+// order. If the direction packet lands a few ms AFTER the button packet, the
+// dir at the button edge is stale. dirCovers says whether `a` presses every
+// d-pad component of `b` (and more) — i.e. going b -> a is a press, not a
+// release. A late press upgrades the graded dir; a quick release never
+// retracts it (rolling off uf right after uf+4 still counts as uf+4).
+const DIR_PARTS: Record<Dir, readonly string[]> = {
+  n: [], u: ['u'], d: ['d'], f: ['f'], b: ['b'],
+  uf: ['u', 'f'], ub: ['u', 'b'], df: ['d', 'f'], db: ['d', 'b'],
+};
+export function dirCovers(a: Dir, b: Dir): boolean {
+  return a !== b && DIR_PARTS[b].every(p => DIR_PARTS[a].includes(p));
+}
 const DIR_SEQ_WINDOW_MS = 700;   // whole motion (f,n,d,df) must fit in this
 const STRING_WINDOW_MS = 1200;   // max gap to continue a string
 const STANCE_PREF_MS = 500;      // after this gap, prefer stance move over string
@@ -25,7 +39,7 @@ const STANCE_TTL_MS = 4000;
 export class Recognizer extends EventEmitter {
   private dirHistory: DirInterval[] = [{ dir: 'n', from: 0, to: Infinity }];
   private heldLimbs = new Set<Limb>();
-  private pendingPress: { t: number; buttons: Set<Limb> } | null = null;
+  private pendingPress: { t: number; buttons: Set<Limb>; timer: NodeJS.Timeout } | null = null;
   private lastMove: { move: CompiledMove; t: number } | null = null;
   private assumedStance: { name: string; until: number } | null = null;
 
@@ -96,19 +110,30 @@ export class Recognizer extends EventEmitter {
       if (this.pendingPress && s.t - this.pendingPress.t <= CHORD_MERGE_MS) {
         newly.forEach(l => this.pendingPress!.buttons.add(l));
       } else {
-        this.flushPending(s.t);
-        this.pendingPress = { t: s.t, buttons: new Set(newly) };
+        this.flushPending();
+        // the poller only emits samples when the pad state changes, so a held
+        // button may see no further samples — the timer guarantees the flush
+        this.pendingPress = {
+          t: s.t,
+          buttons: new Set(newly),
+          timer: setTimeout(() => this.flushPending(), CHORD_MERGE_MS + 6),
+        };
       }
     }
     // flush a pending chord once the merge window has passed
-    if (this.pendingPress && s.t - this.pendingPress.t > CHORD_MERGE_MS) this.flushPending(s.t);
+    if (this.pendingPress && s.t - this.pendingPress.t > CHORD_MERGE_MS) this.flushPending();
   }
 
-  private flushPending(_now: number) {
+  private flushPending() {
     if (!this.pendingPress) return;
     const p = this.pendingPress;
     this.pendingPress = null;
-    const iv = this.dirIntervalAt(p.t);
+    clearTimeout(p.timer);
+    // grade the direction at the end of the merge window when the direction
+    // packet arrived just after the button packet (see dirCovers)
+    const edge = this.dirIntervalAt(p.t);
+    const late = this.dirIntervalAt(p.t + CHORD_MERGE_MS);
+    const iv = late !== edge && dirCovers(late.dir, edge.dir) ? late : edge;
     const ev: PressEvent = {
       t: p.t,
       buttons: [...p.buttons].sort() as Limb[],

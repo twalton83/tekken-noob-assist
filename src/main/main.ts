@@ -8,7 +8,7 @@ import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron';
 import { existsSync, readdirSync, readFileSync, watch } from 'node:fs';
 import { join } from 'node:path';
 import { compileAll, friendlyText, stepsToTokens, type CompiledMove, type RawMove, type Step } from '../shared/notation';
-import { Recognizer, annotateStanceHints } from './recognizer';
+import { Recognizer, annotateStanceHints, dirCovers } from './recognizer';
 import { Trainer, type ComboDef, type DrillStep } from './trainer';
 import { XInputPoller, type PadSample } from './xinput';
 import { GameWatch } from './gamewatch';
@@ -167,6 +167,11 @@ poller.on('sample', (s: PadSample) => {
   const newly: Limb[] = [];
   for (const l of s.limbs) if (!lastHeld.has(l)) newly.push(l);
   lastHeld = new Set(s.limbs);
+  // a direction packet landing just after the button packet upgrades the
+  // pending press's dir ("simultaneous" dir+button arrive in either order)
+  if (pendingTrainer && s.t - pendingTrainer.t <= 18 && dirCovers(s.dir, pendingTrainer.edgeDir)) {
+    pendingTrainer.dir = s.dir;
+  }
   if (newly.length) trainerPress(s.t, newly, s.dir);
 
   if (s.dir !== lastDir) {
@@ -181,14 +186,14 @@ poller.on('sample', (s: PadSample) => {
 });
 
 // merge presses within one frame so chords (1+2) count as one input
-let pendingTrainer: { t: number; buttons: Set<Limb>; dir: string; timer: NodeJS.Timeout } | null = null;
-function trainerPress(t: number, limbs: Limb[], dir: string) {
+let pendingTrainer: { t: number; buttons: Set<Limb>; dir: Dir; edgeDir: Dir; timer: NodeJS.Timeout } | null = null;
+function trainerPress(t: number, limbs: Limb[], dir: Dir) {
   if (pendingTrainer && t - pendingTrainer.t <= 18) {
     limbs.forEach(l => pendingTrainer!.buttons.add(l));
     return;
   }
   flushTrainerPress();
-  const entry = { t, buttons: new Set(limbs), dir, timer: setTimeout(flushTrainerPress, 20) };
+  const entry = { t, buttons: new Set(limbs), dir, edgeDir: dir, timer: setTimeout(flushTrainerPress, 20) };
   pendingTrainer = entry;
 }
 function flushTrainerPress() {
@@ -198,7 +203,7 @@ function flushTrainerPress() {
   pendingTrainer = null;
   const sorted = [...buttons].sort() as Limb[];
   trainer.onPress(t, sorted);
-  notationDrill.onPress(sorted, dir as Dir);
+  notationDrill.onPress(sorted, dir, t);
   win?.webContents.send('input', { kind: 'press', dir, buttons: sorted, t });
 }
 

@@ -125,7 +125,15 @@ export class Trainer extends EventEmitter {
     const key = buttons.join('+');
 
     if (this.attemptStart === null) {
-      if (key !== this.steps[0].buttons.join('+')) return; // wait for the first input
+      if (key !== this.steps[0].buttons.join('+')) {
+        // wrong opener: flag it instead of waiting silently
+        this.verdicts[0] = { verdict: 'wrong', delta: null };
+        this.publish();
+        this.armClear();
+        return;
+      }
+      if (this.clearTimer) clearTimeout(this.clearTimer); // don't wipe the new attempt
+      this.clearTimer = null;
       this.verdicts = this.steps.map(() => ({ verdict: 'pending' as TrainerVerdict, delta: null }));
       this.attemptStart = t;
       this.verdicts[0] = { verdict: 'good', delta: 0 };
