@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] — 2026-08-11
+
+First beta of the multi-character release.
+
 ### Added
 - **Multi-character support** — Yoshimitsu ships alongside Jin
   (`data/yoshimitsu.json`, 312 moves), with a character picker in settings
@@ -24,6 +28,22 @@ All notable changes to this project are documented here. The format follows
   Yoshimitsu starters (Flash drill, NSS Flash setup, Manji spin lows).
 
 ### Fixed
+- **Consistent input grading** — a direction and button pressed
+  "simultaneously" arrive as two XInput packets a few ms apart in arbitrary
+  order; grading used the direction from the button's packet, so whether
+  `df+2` counted as `df+2` or plain `2` was a coin flip. The direction is now
+  re-checked at the end of the one-frame chord window: a direction landing
+  just after the button counts, while releasing one just after the button
+  doesn't retract it (a quick roll-off after `uf+4` still grades as `uf+4`).
+- Held presses are recognized immediately — recognition no longer waits for
+  the next controller packet (previously a pressed-and-held button wasn't
+  recognized until release or movement).
+- Notation drill: retrying during the "wrong" reveal no longer silently eats
+  the first press (which misaligned grading of the following inputs) — a
+  press after a 300 ms grace ends the reveal and is graded as the retry.
+- Combo trainer: a wrong opener button is now flagged instead of being
+  silently ignored, and a leftover result-clear timer from the previous
+  attempt can no longer wipe verdicts mid-attempt.
 - Wavu ids with HTML-entity-encoded just-frame colons (Yoshimitsu's
   `f,F+2:2`) are decoded correctly by the fetch script.
 - `qcb`/`qcf` expansion no longer emits a stray `+` for motions with no

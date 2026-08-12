@@ -1,7 +1,7 @@
 {
   "name": "tekken-trainer",
-  "version": "0.1.0",
-  "description": "Tekken 8 training overlay for Jin — controller-input move recognition and combo timing coach. Reads XInput only; never touches the game.",
+  "version": "0.2.0-beta.1",
+  "description": "Tekken 8 training overlay — controller-input move recognition and combo timing coach. Reads XInput only; never touches the game.",
   "main": "dist/main/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
@@ -38,7 +38,7 @@
     }
   },
   "author": "hello@tatianacodes.com",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@types/node": "^22.10.0",
     "electron": "^33.2.0",
