@@ -1,8 +1,10 @@
 # tekken-trainer
 
-A training overlay for **Tekken 8 (PC/Steam)** focused on **Jin**. Reads your
-Xbox controller, recognizes moves from Jin's full command list, and coaches
-combo timing — including telling you whether your Wind God Fist was **Electric**.
+A training overlay for **Tekken 8 (PC/Steam)** — **Jin** and **Yoshimitsu**
+out of the box, any character via `npm run fetch-data <Name>`. Reads your
+Xbox controller, recognizes moves from the character's full command list, and
+coaches combo timing — including telling you whether your Wind God Fist was
+**Electric**.
 
 ## Screenshots
 
@@ -112,12 +114,17 @@ the repo's `config/` folder.
 
 ## Data & config
 
-- `data/jin.json` — Jin's full move list (128 moves), fetched from the
-  [Wavu wiki](https://wavu.wiki). Refresh after balance patches: `npm run fetch-data`.
-- `data/combos.json` — training combos. **Juggle timings are approximate
-  starting points** — lab them and edit the `ideal` frame offsets to match
-  what actually connects. Add your own combos here.
-- `data/stances.json` — stance-entry moves (enables ZEN.x recognition after f+3).
+- `data/jin.json`, `data/yoshimitsu.json` — full move lists fetched from the
+  [Wavu wiki](https://wavu.wiki). Refresh after balance patches with
+  `npm run fetch-data` (Jin) / `npm run fetch-data Yoshimitsu`, or add any
+  other character the same way (then restart and pick them in settings).
+- `data/combos.json` — per-character training combos. **Juggle timings are
+  approximate starting points** — lab them and edit the `ideal` frame offsets
+  to match what actually connects. Add your own combos here.
+- `data/stances.json` — curated stance-entry overrides. Most stance
+  transitions (ZEN after f+3+4, KIN after 1+2, ...) are detected automatically
+  from the wiki data; add move ids here only when a stance move isn't
+  recognized after its entry.
 - `config/config.json` — button binds (match your in-game settings), facing
   side, and overlay appearance. Default binds: X=1 (LP), Y=2 (RP), A=3 (LK),
   B=4 (RK). Overlay settings:

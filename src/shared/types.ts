@@ -110,6 +110,7 @@ export interface OverlayInit {
 // settings window.
 export interface AppConfig {
   _doc: string;
+  character: string; // which data/<character>.json to train with
   binds: Record<string, Limb[]>;
   side: 'p1' | 'p2';
   overlay: {

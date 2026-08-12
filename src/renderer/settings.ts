@@ -31,6 +31,7 @@ const HOTKEY_LABELS: Record<string, string> = {
 };
 
 let cfg: AppConfig | null = null;
+let characters: string[] = []; // available data/*.json move lists, sent by main
 let muted = false; // true while populating controls from a config broadcast
 
 function push() {
@@ -47,9 +48,25 @@ function fmtPct(v: number): string {
   return `${Math.round(v * 100)}%`;
 }
 
+function populateCharacters() {
+  const sel = $('character') as HTMLSelectElement;
+  sel.textContent = '';
+  // before the list arrives, show at least the configured character
+  const names = characters.length ? characters : cfg ? [cfg.character] : [];
+  for (const name of names) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  }
+  if (cfg) sel.value = cfg.character;
+}
+
 function populate() {
   if (!cfg) return;
   muted = true;
+
+  populateCharacters();
 
   const appearance = $('appearance') as HTMLSelectElement;
   appearance.textContent = '';
@@ -134,6 +151,11 @@ function populate() {
 }
 
 // static control wiring
+$('character').addEventListener('change', () => {
+  if (!cfg) return;
+  cfg.character = ($('character') as HTMLSelectElement).value;
+  push();
+});
 $('appearance').addEventListener('change', () => {
   if (!cfg) return;
   const idx = Number(($('appearance') as HTMLSelectElement).value);
@@ -182,6 +204,10 @@ $('side').addEventListener('change', () => {
 });
 $('close-btn').addEventListener('click', () => window.trainerApi.send('settings-hide'));
 
+window.trainerApi.on('characters', p => {
+  characters = p as string[];
+  populateCharacters();
+});
 window.trainerApi.on('config', p => {
   // ignore echoes while the user is mid-edit in a text field
   if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'text') {

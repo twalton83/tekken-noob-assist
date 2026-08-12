@@ -84,7 +84,10 @@ function render() {
 }
 
 window.trainerApi.on('moves', p => {
-  moves = p as MoveListEntry[];
+  const { character, entries } = p as { character: string; entries: MoveListEntry[] };
+  $('char-label').textContent = `${character} · command list`;
+  moves = entries;
+  selectedId = null; // a selected drill doesn't survive a character switch
   render();
 });
 

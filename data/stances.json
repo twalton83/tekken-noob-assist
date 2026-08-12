@@ -1,5 +1,5 @@
 {
-  "_doc": "Stance-entry moves: performing one of these makes the recognizer assume you are in that stance for a few seconds, enabling stance-move recognition (ZEN.1 etc.). Wavu notes don't always mark transitions, so this is curated — add move ids here if a stance move isn't being recognized after its entry.",
+  "_doc": "Curated stance-entry overrides: performing one of these move ids makes the recognizer assume that stance for a few seconds, enabling stance-move recognition (ZEN.1, KIN.2, ...). Most transitions are detected automatically from wavu data (the recovery field like 'r15 KIN', or notes like 'Enter KIN ... with 1+2') — add ids here only when a stance move isn't being recognized after its entry.",
   "ZEN": ["Jin-f+3"],
   "DVS": []
 }

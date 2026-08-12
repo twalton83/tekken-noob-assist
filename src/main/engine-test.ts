@@ -1,33 +1,54 @@
 // Offline engine test: no Electron, no controller. Verifies (1) the notation
-// compiler covers the full Jin move list, (2) the recognizer identifies moves
-// from synthetic input streams. Run: npm run test-engine
+// compiler covers the full move lists of all fetched characters, (2) the
+// recognizer identifies moves from synthetic input streams. Run: npm run test-engine
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { compileAll, type RawMove } from '../shared/notation';
+import { compileAll, type CompiledMove, type RawMove } from '../shared/notation';
 import { Recognizer, annotateStanceHints } from './recognizer';
 import type { Dir, Limb, RecognizedMoveMsg } from '../shared/types';
 import type { PadSample } from './xinput';
 
 const ROOT = join(__dirname, '..', '..');
-const jinData = JSON.parse(readFileSync(join(ROOT, 'data', 'jin.json'), 'utf8'));
-const raws: RawMove[] = jinData.moves.map((m: Record<string, unknown>) => ({
-  id: m.id, name: m.name, command: m.command, parent: m.parent, notes: m.notes,
-}));
+const stanceOverrides = JSON.parse(readFileSync(join(ROOT, 'data', 'stances.json'), 'utf8'));
+
+function loadCompiled(file: string): Map<string, CompiledMove> {
+  const data = JSON.parse(readFileSync(join(ROOT, 'data', file), 'utf8'));
+  const raws: RawMove[] = data.moves.map((m: Record<string, unknown>) => ({
+    id: m.id, name: m.name, command: m.command, parent: m.parent, notes: m.notes,
+  }));
+  const out = compileAll(raws);
+  annotateStanceHints(out, data.moves, stanceOverrides);
+  return out;
+}
 
 // ---- 1) parser coverage ----
-const compiled = compileAll(raws);
-const stanceOverrides = JSON.parse(readFileSync(join(ROOT, 'data', 'stances.json'), 'utf8'));
-annotateStanceHints(compiled, jinData.moves, stanceOverrides);
-const bad = [...compiled.values()].filter(m => m.unrecognizable);
-console.log(`parser: ${compiled.size - bad.length}/${compiled.size} moves compiled`);
-for (const m of bad) console.log(`  skipped ${m.id}: ${m.unrecognizable}`);
+const compiled = loadCompiled('jin.json');
+const yoshi = loadCompiled('yoshimitsu.json');
+for (const [who, map] of [['Jin', compiled], ['Yoshimitsu', yoshi]] as const) {
+  const bad = [...map.values()].filter(m => m.unrecognizable);
+  console.log(`parser (${who}): ${map.size - bad.length}/${map.size} moves compiled`);
+  for (const m of bad) console.log(`  skipped ${m.id}: ${m.unrecognizable}`);
+}
 
-// ---- 2) synthetic recognition ----
 let failures = 0;
 
-function scenario(name: string, expectIds: string[], run: (feed: (dir: Dir, limbs: Limb[], dtMs: number) => void) => void) {
-  const rec = new Recognizer(compiled);
+// ---- 2) stance-hint derivation ----
+function expectHint(map: Map<string, CompiledMove>, id: string, stance: string) {
+  const hint = (map.get(id) as (CompiledMove & { stanceHint?: string }) | undefined)?.stanceHint;
+  const pass = hint === stance;
+  if (!pass) failures++;
+  console.log(`${pass ? 'PASS' : 'FAIL'}  hint ${id} -> ${stance}${pass ? '' : ` (got ${hint})`}`);
+}
+expectHint(compiled, 'Jin-b+3+4', 'ZEN');        // from recovery "r5 ZEN"
+expectHint(compiled, 'Jin-f+3', 'ZEN');          // from stances.json override
+expectHint(yoshi, 'Yoshimitsu-1+2', 'KIN');      // from recovery "r15 KIN"
+expectHint(yoshi, 'Yoshimitsu-d+3+4', 'IND');    // from recovery "r20 IND"
+expectHint(yoshi, 'Yoshimitsu-FLE.3', 'FLE');    // stance move that stays in stance
+
+// ---- 3) synthetic recognition ----
+function scenario(name: string, expectIds: string[], run: (feed: (dir: Dir, limbs: Limb[], dtMs: number) => void) => void, moves: Map<string, CompiledMove> = compiled) {
+  const rec = new Recognizer(moves);
   const got: RecognizedMoveMsg[] = [];
   rec.on('move', (m: RecognizedMoveMsg) => got.push(m));
   let t = 10_000;
@@ -171,6 +192,33 @@ scenario('4~3', ['Jin-4', 'Jin-4~3'], feed => {
   feed('n', [3], 8);
   feed('n', [], 8);
 });
+
+// ---- Yoshimitsu scenarios ----
+
+// Flash: 1+4 chord in neutral
+scenario('Yoshi 1+4 Flash', ['Yoshimitsu-1+4'], feed => {
+  feed('n', [], 8);
+  feed('n', [1, 4], 8);
+  feed('n', [], 8);
+}, yoshi);
+
+// Kincho: 1+2 enters KIN, a delayed 2 is the stance move
+scenario('Yoshi KIN.2 after 1+2', ['Yoshimitsu-1+2', 'Yoshimitsu-KIN.2'], feed => {
+  feed('n', [1, 2], 8);
+  feed('n', [], 300);
+  feed('n', [2], 500);   // ~800ms later: stance move
+  feed('n', [], 8);
+}, yoshi);
+
+// Indian Stance: d+3+4 enters IND, delayed 1+2 goes to Flea from there
+scenario('Yoshi IND.1+2 after d+3+4', ['Yoshimitsu-d+3+4', 'Yoshimitsu-IND.1+2'], feed => {
+  feed('d', [], 60);
+  feed('d', [3, 4], 8);
+  feed('d', [], 100);
+  feed('n', [], 300);
+  feed('n', [1, 2], 500);
+  feed('n', [], 8);
+}, yoshi);
 
 console.log(failures === 0 ? '\nall scenarios passed' : `\n${failures} scenario(s) FAILED`);
 process.exit(failures === 0 ? 0 : 1);

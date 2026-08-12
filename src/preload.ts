@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-const listenChannels = ['init', 'move', 'trainer', 'pad', 'lock', 'metronome', 'input', 'moves', 'selected', 'config', 'notation'] as const;
+const listenChannels = ['init', 'move', 'trainer', 'pad', 'lock', 'metronome', 'input', 'moves', 'selected', 'config', 'characters', 'notation'] as const;
 const sendChannels = ['renderer-ready', 'moves-ready', 'select-move', 'moves-hide', 'open-settings', 'settings-ready', 'settings-hide', 'set-config', 'set-mode', 'notation-skip', 'notation-difficulty'] as const;
 
 contextBridge.exposeInMainWorld('trainerApi', {

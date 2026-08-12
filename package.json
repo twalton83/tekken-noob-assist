@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.renderer.json",
     "start": "npm run build && electron .",
     "dev": "node scripts/dev.mjs",
-    "fetch-data": "node scripts/fetch-jin.mjs",
+    "fetch-data": "node scripts/fetch-character.mjs",
     "test-engine": "npm run build && node dist/main/engine-test.js",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"

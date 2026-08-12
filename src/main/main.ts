@@ -5,7 +5,7 @@
 // transparent window. It never reads game memory, injects, or hooks Tekken.
 
 import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron';
-import { readFileSync, watch } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, watch } from 'node:fs';
 import { join } from 'node:path';
 import { compileAll, friendlyText, stepsToTokens, type CompiledMove, type RawMove, type Step } from '../shared/notation';
 import { Recognizer, annotateStanceHints } from './recognizer';
@@ -14,7 +14,7 @@ import { XInputPoller, type PadSample } from './xinput';
 import { GameWatch } from './gamewatch';
 import { NotationDrill } from './notation-drill';
 import { Config } from './config';
-import type { AppConfig, Dir, Limb, Mode } from '../shared/types';
+import type { AppConfig, Dir, Limb, Mode, RecognizedMoveMsg, TrainerStateMsg } from '../shared/types';
 
 const ROOT = join(__dirname, '..', '..');
 
@@ -28,17 +28,81 @@ let metronomeOn = false;
 // packaged: config lives in the user profile (the install dir is read-only)
 const config = new Config(app.isPackaged ? app.getPath('userData') : ROOT);
 
-// --- data ---
-const jinData = JSON.parse(readFileSync(join(ROOT, 'data', 'jin.json'), 'utf8'));
-const raws: RawMove[] = jinData.moves.map((m: Record<string, unknown>) => ({
-  id: m.id, name: m.name, command: m.command, parent: m.parent, notes: m.notes,
-}));
-const compiled = compileAll(raws);
+// --- data & engine state (rebuilt when the character changes) ---
 const stanceOverrides = JSON.parse(readFileSync(join(ROOT, 'data', 'stances.json'), 'utf8'));
-annotateStanceHints(compiled, jinData.moves, stanceOverrides);
-
 const combosFile = JSON.parse(readFileSync(join(ROOT, 'data', 'combos.json'), 'utf8'));
-const combos: ComboDef[] = combosFile.combos;
+
+// moves stay loosely typed — they're raw wavu JSON rows (see data/*.json)
+let charData: { character: string; moves: any[] };
+let compiled: Map<string, CompiledMove>;
+let recognizer: Recognizer;
+let trainer: Trainer;
+
+const characterFile = (name: string) =>
+  join(ROOT, 'data', `${name.toLowerCase().replace(/\s+/g, '-')}.json`);
+
+// characters = every data/*.json that looks like a fetched move list
+function listCharacters(): string[] {
+  const names: string[] = [];
+  for (const f of readdirSync(join(ROOT, 'data'))) {
+    if (!f.endsWith('.json')) continue;
+    try {
+      const j = JSON.parse(readFileSync(join(ROOT, 'data', f), 'utf8'));
+      if (j.character && Array.isArray(j.moves)) names.push(j.character);
+    } catch { /* not a character file */ }
+  }
+  return names.sort();
+}
+
+function onMove(msg: RecognizedMoveMsg) {
+  if (mode === 'freeplay') win?.webContents.send('move', msg);
+  trainer.onMove(msg);
+}
+
+function onTrainerState(msg: TrainerStateMsg) {
+  if (mode === 'trainer') win?.webContents.send('trainer', msg);
+}
+
+function loadCharacter(name: string) {
+  let file = characterFile(name);
+  if (!existsSync(file)) {
+    console.warn(`no move data for "${name}" — falling back to Jin (add characters with: npm run fetch-data <Name>)`);
+    file = characterFile('Jin');
+  }
+  charData = JSON.parse(readFileSync(file, 'utf8'));
+  if (config.data.character !== charData.character) {
+    config.data.character = charData.character; // fallback happened — keep config truthful
+    config.save();
+  }
+
+  const raws: RawMove[] = charData.moves.map(m => ({
+    id: m.id, name: m.name, command: m.command, parent: m.parent, notes: m.notes,
+  }));
+  compiled = compileAll(raws);
+  annotateStanceHints(compiled, charData.moves, stanceOverrides);
+
+  const combos: ComboDef[] = [...(combosFile.characters?.[charData.character] ?? [])];
+  // give curated move drills (EWGF) icon cards too
+  for (const c of combos) {
+    if (c.kind === 'move-drill' && c.moveId && !c.drillSteps) {
+      const m = compiled.get(c.moveId);
+      if (m && !m.unrecognizable) c.drillSteps = buildDrillSteps(m);
+    }
+  }
+  // the trainer needs at least one combo — fall back to a jab drill
+  if (!combos.length) {
+    const jab = [...compiled.values()].find(m => m.command === '1' && !m.unrecognizable);
+    if (jab) combos.push(buildDrillCombo(jab));
+  }
+
+  recognizer?.removeAllListeners();
+  trainer?.removeAllListeners();
+  recognizer = new Recognizer(compiled);
+  recognizer.on('move', onMove);
+  trainer = new Trainer(combos, id => compiled.get(id));
+  trainer.on('state', onTrainerState);
+  trainer.active = mode === 'trainer';
+}
 
 // Per-hit display cards for a move drill: cut the move's step chain after each
 // press so every hit gets its own icon card.
@@ -65,7 +129,7 @@ function siblingVariantId(m: CompiledMove): string | undefined {
 }
 
 function buildDrillCombo(m: CompiledMove): ComboDef {
-  const raw = jinData.moves.find((r: { id: string }) => r.id === m.id);
+  const raw = charData.moves.find((r: { id: string }) => r.id === m.id);
   const facts = [
     raw?.startup ? `startup ${raw.startup}` : null,
     raw?.damage ? `dmg ${raw.damage}` : null,
@@ -83,17 +147,8 @@ function buildDrillCombo(m: CompiledMove): ComboDef {
   };
 }
 
-// give curated move drills (EWGF) icon cards too
-for (const c of combos) {
-  if (c.kind === 'move-drill' && c.moveId && !c.drillSteps) {
-    const m = compiled.get(c.moveId);
-    if (m && !m.unrecognizable) c.drillSteps = buildDrillSteps(m);
-  }
-}
-
 // --- engine ---
-const recognizer = new Recognizer(compiled);
-const trainer = new Trainer(combos, id => compiled.get(id));
+loadCharacter(config.data.character);
 const notationDrill = new NotationDrill();
 notationDrill.difficulty = config.data.notation.difficulty;
 notationDrill.on('state', msg => {
@@ -146,15 +201,6 @@ function flushTrainerPress() {
   notationDrill.onPress(sorted, dir as Dir);
   win?.webContents.send('input', { kind: 'press', dir, buttons: sorted, t });
 }
-
-recognizer.on('move', msg => {
-  if (mode === 'freeplay') win?.webContents.send('move', msg);
-  trainer.onMove(msg);
-});
-
-trainer.on('state', msg => {
-  if (mode === 'trainer') win?.webContents.send('trainer', msg);
-});
 
 // --- overlay window ---
 function createWindow() {
@@ -214,7 +260,7 @@ function toggleMovesWindow() {
     height: 780,
     minWidth: 400,
     minHeight: 320,
-    title: 'Jin — move list',
+    title: `${charData.character} — move list`,
     frame: false, // custom title bar in moves.html
     backgroundColor: '#0b0f17',
     alwaysOnTop: true,
@@ -282,7 +328,13 @@ function updateGameWatch() {
 // live-apply a config edit coming from the settings window
 function applyConfig(next: Partial<AppConfig>) {
   const prevHotkeys = JSON.stringify(config.data.hotkeys);
+  const prevCharacter = config.data.character;
   config.replace(next);
+  if (config.data.character !== prevCharacter) {
+    loadCharacter(config.data.character);
+    movesWin?.setTitle(`${charData.character} — move list`);
+    sendMovesList();
+  }
   poller.binds = config.data.binds;
   poller.side = config.data.side;
   notationDrill.setDifficulty(config.data.notation.difficulty);
@@ -295,7 +347,7 @@ function applyConfig(next: Partial<AppConfig>) {
 }
 
 function sendMovesList() {
-  const entries = jinData.moves.map((r: Record<string, unknown>) => {
+  const entries = charData.moves.map((r: Record<string, unknown>) => {
     const m = compiled.get(r.id as string);
     return {
       id: r.id,
@@ -311,13 +363,16 @@ function sendMovesList() {
       reason: m?.unrecognizable ?? null,
     };
   });
-  movesWin?.webContents.send('moves', entries);
+  movesWin?.webContents.send('moves', { character: charData.character, entries });
 }
 
 ipcMain.on('moves-ready', () => sendMovesList());
 ipcMain.on('moves-hide', () => movesWin?.hide());
 ipcMain.on('open-settings', () => toggleSettingsWindow());
-ipcMain.on('settings-ready', () => sendConfig());
+ipcMain.on('settings-ready', () => {
+  settingsWin?.webContents.send('characters', listCharacters());
+  sendConfig();
+});
 ipcMain.on('settings-hide', () => settingsWin?.hide());
 ipcMain.on('set-config', (_e, next: Partial<AppConfig>) => applyConfig(next));
 ipcMain.on('set-mode', () => actions.mode());

@@ -331,28 +331,43 @@ export class Recognizer extends EventEmitter {
   }
 }
 
-// Attach stance-entry hints from move notes/names ("...transition to ZEN...")
-// plus curated overrides from data/stances.json (wavu notes are incomplete).
+// Attach stance-entry hints so the recognizer can assume a stance after the
+// move that enters it. Stance names are whatever prefixes the character's own
+// moves declare (ZEN/DVS for Jin, KIN/NSS/IND/... for Yoshimitsu). Sources,
+// weakest to strongest (later overwrites earlier):
+//  1. notes/names mentioning a transition ("Enter KIN r25 with 1+2")
+//  2. the wavu recovery field ("r15 KIN" = recovers in that stance) — this is
+//     also how stance moves that KEEP you in the stance (FLE.d -> FLE) chain
+//  3. curated overrides from data/stances.json (for gaps found in practice)
 export function annotateStanceHints(
   moves: Map<string, CompiledMove>,
-  raws: { id: string; notes: string | null; name: string | null }[],
+  raws: { id: string; notes?: string | null; name?: string | null; recovery?: string | null }[],
   overrides: Record<string, string[]> = {},
 ) {
+  const stances = new Set<string>();
+  for (const m of moves.values()) if (m.stance) stances.add(m.stance);
+
+  const set = (m: CompiledMove, stance: string) =>
+    ((m as CompiledMove & { stanceHint?: string }).stanceHint = stance);
+
   for (const r of raws) {
     const m = moves.get(r.id);
     if (!m || m.unrecognizable) continue;
     const text = `${r.notes ?? ''} ${r.name ?? ''}`;
-    for (const stance of ['ZEN', 'DVS']) {
-      if (m.stance === stance) continue; // a stance move doesn't (re-)enter it
-      const re = new RegExp(`(to|into|enter[s]?)\\s+${stance}|${stance}\\s*(transition|cancel)`, 'i');
-      if (re.test(text)) (m as CompiledMove & { stanceHint?: string }).stanceHint = stance;
+    for (const stance of stances) {
+      if (m.stance === stance) continue; // notes on a stance's own move are noise
+      const re = new RegExp(`(to|into|enter[s]?)\\s+${stance}\\b|${stance}\\s*(transition|cancel)`, 'i');
+      if (re.test(text)) set(m, stance);
     }
+    // recovery like "r15 KIN": the move ends in that stance, unconditionally
+    const rec = r.recovery?.match(/\br\d+\??\s+([A-Z][A-Z0-9]{1,3})\b/);
+    if (rec && stances.has(rec[1])) set(m, rec[1]);
   }
   for (const [stance, ids] of Object.entries(overrides)) {
     if (stance.startsWith('_')) continue;
     for (const id of ids) {
       const m = moves.get(id);
-      if (m && !m.unrecognizable) (m as CompiledMove & { stanceHint?: string }).stanceHint = stance;
+      if (m && !m.unrecognizable) set(m, stance);
     }
   }
 }

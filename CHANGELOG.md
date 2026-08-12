@@ -6,6 +6,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Multi-character support** — Yoshimitsu ships alongside Jin
+  (`data/yoshimitsu.json`, 312 moves), with a character picker in settings
+  that live-swaps the recognizer, trainer, and move browser. Fetch any other
+  character with `npm run fetch-data <Name>` (`scripts/fetch-character.mjs`
+  replaces the Jin-only fetch script).
+- Notation compiler understands arbitrary stance prefixes (`KIN.`, `NSS.`,
+  `FLE.`, ...), the `hFC.` half-crouch prefix, `qcf` motions, mash-count
+  (`*(n)`) and held-input (`*`) markers, and mid-string stance segments like
+  `2,NSS.1`.
+- Stance transitions are now derived from wavu's recovery field ("r15 KIN")
+  and notes for whatever stances a character actually has — stance moves that
+  keep you in the stance (e.g. Flea) chain correctly. `data/stances.json` is
+  now just curated overrides.
+- Per-character training combos in `data/combos.json`, including three
+  Yoshimitsu starters (Flash drill, NSS Flash setup, Manji spin lows).
+
+### Fixed
+- Wavu ids with HTML-entity-encoded just-frame colons (Yoshimitsu's
+  `f,F+2:2`) are decoded correctly by the fetch script.
+- `qcb`/`qcf` expansion no longer emits a stray `+` for motions with no
+  attached button (`qcb,f+2`).
+
 ## [0.1.0] — 2026-08-11
 
 Initial release.

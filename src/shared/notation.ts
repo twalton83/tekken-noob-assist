@@ -23,7 +23,7 @@ export interface CompiledMove {
   name: string | null;
   command: string;
   state: StateReq;
-  stance: string | null;        // 'ZEN' | 'DVS' | null
+  stance: string | null;        // stance prefix ('ZEN', 'KIN', 'NSS', ...) or null
   steps: Step[];                // full chain (parent steps + own)
   ownSteps: Step[];             // this move's continuation only
   parent: string | null;
@@ -112,11 +112,12 @@ function parseBody(body: string): Step[] {
   if (cur.trim()) parts.push({ text: cur, tight });
 
   for (const p of parts) {
-    // a mid-string state prefix like "H.1+2" (df+2,H.1+2): strip and ignore the
-    // state for matching (we can't verify heat), keep for display via tokens.
+    // a mid-string state/stance prefix like "H.1+2" (df+2,H.1+2) or "NSS.1"
+    // ("2,NSS.1"): strip and ignore it for matching (we can't verify heat, and
+    // the mid-string stance is a consequence of the string, not an input).
     let text = p.text;
-    const midState = text.match(/^(H|R|OTG)\.(.+)$/);
-    if (midState) text = midState[2];
+    const midState = text.match(/^((?:[A-Z][A-Za-z0-9]{0,3}\.)+)(.+)$/);
+    if (midState && !parseDirToken(midState[1].slice(0, -1))) text = midState[2];
     steps.push(parseSegment(text, p.tight));
   }
 
@@ -195,15 +196,25 @@ export function compileMove(raw: RawMove, parents: Map<string, CompiledMove>): C
 
   let body = raw.command.replace(/\$\{justFrame\}/g, ':');
 
-  // Leading state/stance prefixes
+  // Leading state/stance prefixes. States are the fixed set we can (partly)
+  // verify from input; any other dotted prefix is a character stance (ZEN, KIN,
+  // NSS, DGF, ...) — matched only while the recognizer assumes that stance.
+  // Prefixes stack ("NSS.FC.DF+1", "NSS.IND.1"); the innermost stance wins,
+  // since that's what the previous move's transition hint will have set.
   for (;;) {
-    const m = body.match(/^(ZEN|DVS|H|R|OTG|FC|CD)\./);
+    const m = body.match(/^(H|R|OTG|FC|hFC|CD)\./);
     if (m) {
       const p = m[1];
       body = body.slice(m[0].length);
-      if (p === 'ZEN' || p === 'DVS') base.stance = p;
-      else if (p === 'CD') body = 'f,n,d,' + body; // crouch dash expansion
+      if (p === 'CD') body = 'f,n,d,' + body;   // crouch dash expansion
+      else if (p === 'hFC') base.state = 'FC';  // half crouch ≈ full crouch
       else base.state = p as StateReq;
+      continue;
+    }
+    const st = body.match(/^([A-Z][A-Z0-9]{1,3})\./);
+    if (st) {
+      base.stance = st[1];
+      body = body.slice(st[0].length);
       continue;
     }
     if (/^ws/i.test(body)) {
@@ -214,8 +225,13 @@ export function compileMove(raw: RawMove, parents: Map<string, CompiledMove>): C
     break;
   }
 
-  // quarter circle back
-  body = body.replace(/^qcb\+?/, 'd,db,b+');
+  // quarter circle motions ("qcb+1+3" and bare "qcb,f+2" both occur); '*' marks
+  // a held/repeatable input and '*(n)' a mash count — drop both for matching
+  body = body
+    .replace(/^qcb/, 'd,db,b')
+    .replace(/^qcf/, 'd,df,f')
+    .replace(/\*\(\d+\)/g, '')
+    .replace(/\*$/, '');
 
   let ownSteps: Step[];
   try {

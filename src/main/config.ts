@@ -9,6 +9,7 @@ export type { AppConfig };
 
 const DEFAULTS: AppConfig = {
   _doc: 'binds map Xbox buttons to Tekken limbs (1=LP 2=RP 3=LK 4=RK). Match these to your in-game controller settings. side p1 = you face right. hotkeys use Electron accelerator names (F1, Ctrl+Shift+M, ...). overlay: width/height size the window, scale zooms everything in it, panelAlpha (0..1) sets how dark the glass panel is, appearancePresets is the cycle the opacity hotkey walks through (each preset = window opacity + glass darkness).',
+  character: 'Jin',
   binds: { X: [1], Y: [2], A: [3], B: [4], LB: [], RB: [], LT: [], RT: [] },
   side: 'p1',
   overlay: {
